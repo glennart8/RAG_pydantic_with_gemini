@@ -19,19 +19,11 @@ DB_PATH = "my_restaurant_db"
 EMBEDDING_MODEL_NAME = 'all-MiniLM-L6-v2' 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
-if not GEMINI_API_KEY:
-    print("\n[KRITISKT FEL]: GEMINI_API_KEY saknas i .env-filen eller lästes inte.")
-    print("Kontrollera att .env är korrekt formaterad: GEMINI_API_KEY=\"AIza...\"")
-    exit()
-
-try:
-    gemini_client = genai.Client(api_key=GEMINI_API_KEY)
-except Exception as e:
-    print(f"[KRITISKT FEL]: Kunde inte initiera Gemini-klienten. Kontrollera nyckelns giltighet: {e}")
-    exit()
+gemini_client = genai.Client(api_key=GEMINI_API_KEY)
 
 db = lancedb.connect(DB_PATH)
 table = db.open_table("restaurants_db")
+
 embedding_model = SentenceTransformer(EMBEDDING_MODEL_NAME) 
 
 # --- Kör agent ---
@@ -71,7 +63,7 @@ def run_rag_agent():
     context_text = search_results[0]['text'] if search_results else "Ingen information tillgänglig i databasen."
     print(f"Resultat från LanceDB: {context_text}")
 
-    # --- 2. GENERERINGSSTEGET (GENERATION) ---
+    # --- GENERERINGSSTEGET ---
     print("\n--- Gör resultatet till strukturerat JSON med Gemini ---")
     
     # Beskrive rhur jag vill ha mitt svar, En JSON-sträng i pydanticklassen Restaurang
