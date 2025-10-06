@@ -26,7 +26,6 @@ if not GEMINI_API_KEY:
 
 try:
     gemini_client = genai.Client(api_key=GEMINI_API_KEY)
-    print(f"-> Gemini Klient Initierad med modell: {MODEL_NAME}")
 except Exception as e:
     print(f"[KRITISKT FEL]: Kunde inte initiera Gemini-klienten. Kontrollera nyckelns giltighet: {e}")
     exit()
@@ -45,14 +44,16 @@ def run_rag_agent():
 
     # HÄMTNINGSSTEGET
     input_lower = user_input.lower()
+    
     city = None
     if "göteborg" in input_lower or "gbg" in input_lower:
         city = "Göteborg"
     elif "uddevalla" in input_lower:
         city = "Uddevalla"
 
-    print("\n--- 1. Söker i LanceDB ---")
+    print("\n Söker i LanceDB ")
     
+    # Försök vektorisera inputen
     try:
         query_vector = embedding_model.encode(user_input).tolist()
         search_query = table.search(query_vector)
@@ -68,12 +69,12 @@ def run_rag_agent():
         return
 
     context_text = search_results[0]['text'] if search_results else "Ingen information tillgänglig i databasen."
-    print(f"Hittade fakta: {context_text}")
+    print(f"Resultat från LanceDB: {context_text}")
 
     # --- 2. GENERERINGSSTEGET (GENERATION) ---
-    print("\n--- 2. Formaterar fakta med Gemini ---")
+    print("\n--- Gör resultatet till strukturerat JSON med Gemini ---")
     
-    # Konfiguration för att tvinga fram det strukturerade JSON-svaret
+    # Beskrive rhur jag vill ha mitt svar, En JSON-sträng i pydanticklassen Restaurang
     schema_config = types.GenerateContentConfig(
         response_mime_type="application/json",
         response_schema=Restaurant,
@@ -108,12 +109,10 @@ def run_rag_agent():
         
         print("\n--- Strukturerat och Faktabaserat Resultat ---")
         print(result.model_dump_json(indent=2))
-        print("---------------------------------------------")
         
     except ValidationError as e:
         print(f"\n[FEL]: Valideringsfel. AI:n svarade med fel format: {e}")
     except APIError as e:
-        # Fångar nu API-fel korrekt utan att krascha
         print(f"\n[KRITISKT FEL]: Ett Gemini API-fel uppstod. Kontrollera din nyckel och kvot: {e}")
     except Exception as e:
         print(f"\n[KRITISKT FEL]: Ett oväntat fel uppstod: {e}")
