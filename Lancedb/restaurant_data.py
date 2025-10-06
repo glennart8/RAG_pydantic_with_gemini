@@ -1,5 +1,21 @@
 RAW_RESTAURANT_DATA = [
     {
+        "text": "**Tien Tzin** är en välkänd kinesisk restaurang i centrala Göteborg, känd för sitt autentiska Szechuan-kök. De ligger på Engelbrektsgatan 34B. De har vegetariska alternativ och är hundvänliga. Rating: 4.2. Köksstilar: Kinesisk, Szechuan.", 
+        "city": "Göteborg"
+    },
+    {
+        "text": "**Hing Wa** ligger i Gamlestaden på Hornsgatan 12. De är hyllade för sin genuina kinesiska matlagning som går utöver standardbuffén, och är särskilt kända för sina fiskrätter. Lokalen är rymlig och servicen är bra. Rating: 4.3. Köksstilar: Kinesisk, Genuin Kinesisk, Fisk.", 
+        "city": "Göteborg"
+    },
+    {
+        "text": "**Restaurang Yanking** ligger i Olskroken och har länge serverat äkta kinesiska smaker. De är familjedrivna med kockar från Kina och erbjuder både Szechuan-rätter och klassiker. Rating: 4.4. Köksstilar: Kinesisk, Szechuan, Autentisk.", 
+        "city": "Göteborg"
+    },
+    {
+        "text": "**Restaurang Mandarin** är en klassisk kinarestaurang i Göteborg sedan 1962, belägen nära Korsvägen (Södra Vägen 51). De serverar traditionella rätter i en charmig atmosfär. Rating: 4.1. Köksstilar: Kinesisk, Klassisk Kinesisk.", 
+        "city": "Göteborg"
+    },
+    {
         "text": "Restaurang **Koka** i Göteborg är en Michelin-belönad krog känd för sin moderna nordiska matlagning. De ligger på Viktoriagatan 12. Rating: Hög (Michelin). Köksstilar: Nordisk, Fine Dining.", 
         "city": "Göteborg"
     },
