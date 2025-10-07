@@ -15,7 +15,7 @@ from models import Restaurant, RestaurantList
 load_dotenv()
 
 MODEL_NAME = "gemini-2.5-flash" 
-DB_PATH = "my_restaurant_db"
+DB_PATH = "../my_restaurant_db"
 EMBEDDING_MODEL_NAME = 'all-MiniLM-L6-v2' 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
@@ -49,7 +49,7 @@ def get_user_query(input_prompt: str) -> str | None:
 
 
 # HANTERAR HÄMTNING (RAG: Retrieval)
-def perform_vector_search(query: str) -> str | None:
+def perform_vector_search(query: str, city_filter: str):
     """
     1. Frågar efter stad för filtrering.
     2. Hämtar de 5 bäst matchande recensionerna från LanceDB.
