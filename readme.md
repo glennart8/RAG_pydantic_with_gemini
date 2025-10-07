@@ -13,3 +13,8 @@ Med denna struktur kan man själv fylla på med restaurangbesök, recensera för
 # TODO:
 - Lägga till recensioner för restauranger
 - Gå via fastapi till frontend i streamlit
+
+# STEG
+- Retriaval/Hämta/Lägg till: Vektorinbäddningar, vi använder embedding_model.encode() för att göra data sökbar i LanceDB.
+- Augmentering: Använder explicit etikettering i perform_vector_search() för att förhindra hallucinationer.
+- Generering: Response_schema=RestaurantList tvingar Gemini att svara i ett strukturerat format och att model_validate_json() validerar det svaret.

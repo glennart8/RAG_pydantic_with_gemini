@@ -25,7 +25,6 @@ if not GEMINI_API_KEY:
 client = genai.Client(api_key=GEMINI_API_KEY)
 db = lancedb.connect(DB_PATH)
 try:
-    # Försök öppna tabellen. Misslyckas om setup_db.py inte har körts.
     table = db.open_table("restaurants_db")
 except Exception as e:
     print(f"FEL: Kunde inte öppna 'restaurants_db'. Har du kört setup_db.py? Fel: {e}")
@@ -87,7 +86,7 @@ def perform_vector_search(query: str) -> str | None:
 
     print(f"Hittade {len(search_results)} potentiella fakta. Förbereder för Gemini...")
     
-    # 3. FORMULERA KONTEXTEN TYDLIGT (LÖSNINGEN MOT HALLUCINATIONER)
+    # 3. AUGMENTATION - FÖRBÄTTRING - FORMULERA KONTEXTEN TYDLIGT (LÖSNINGEN MOT HALLUCINATIONER)
     context_text = []
     for result in search_results:
         # Tydlig etikettering hjälper LLM:en att korrekt extrahera Namn, Stad, etc.
@@ -197,7 +196,7 @@ def add_restaurant():
             "name": restaurant_name,
             "city": final_city,
             "text": review,
-            "vector": embedding,
+            "vector": embedding, # Måste spara vektorn för att kunna söka och matcha i perform_vector_serach() sen
         }
     ]
     
@@ -211,6 +210,40 @@ def add_restaurant():
     return
 
 
+# --- FUNKTION: VISA ALLA NAMN ---
+def list_all_names():
+    """
+    Hämtar alla poster från databasen och skriver ut namnen.
+    Använder to_pandas() direkt för maximal kompatibilitet.
+    """
+    print("\n--- ALLA RESTAURANGNAMN I DATABASEN ---")
+    try:
+        # Hämta all data och välj sedan kolumnerna i Pandas
+        all_restaurants = table.to_pandas()
+        
+        if all_restaurants.empty:
+            print("Databasen är tom.")
+            return
+
+        # Välj endast de nödvändiga kolumnerna och sortera
+        restaurants_to_display = all_restaurants[['name', 'city']].sort_values(by='city')
+
+        # Ingen nuvarande stad än
+        current_city = None
+        for _, row in restaurants_to_display.iterrows(): 
+            if row['city'] != current_city: # Om city inte är None, t.ex. Göteborg
+                print(f"\n[{row['city'].upper()}]:") # Skriv ut göteborg
+                current_city = row['city'] # göteborg blir nuvarande stad
+            
+            print(f"- {row['name']}")   # skriv ut restauranger för göteborg (row)
+            
+            # Sedan börjar loopen om, nuvarande stad är göteborg, nästa restaurang skrivs ut. Sedan byts stad och loopen upprepas
+        
+        print("------------------------------------------")
+
+    except Exception as e:
+        print(f"[KRITISKT FEL]: Kunde inte läsa från databasen. Fel: {e}")
+
 # KÖR AGENT (Orkestrering och Menylogik)
 
 def run_rag_agent():
@@ -219,11 +252,12 @@ def run_rag_agent():
     
     
     while True:
-        # VISA MENYN
+        # VISA MENYN (NYTT ALTERNATIV)
         print("\n-----------------------------------------------------")
         print("Välj ett alternativ:")
         print("1: Sök restaurang")
         print("2: Lägg till restaurang")
+        print("3: Visa alla namn") # NYTT
         print("q: Avsluta")
         print("-----------------------------------------------------")
         
@@ -236,7 +270,7 @@ def run_rag_agent():
             
         elif choice == '1':
             # --- SÖK ---
-            prompt = "Sök efter en restaurang. (Ex: 'Kinesiskt', 'Barnvänligt, eller 'q' för att avbryta sökningen):\n> "
+            prompt = "Sök efter en restaurang. (Ex: 'Kinesiskt' eller 'q' för att avbryta sökningen):\n> "
             
             # 1. Ta emot input
             user_query = get_user_query(prompt)
@@ -244,16 +278,16 @@ def run_rag_agent():
             if user_query is None:
                 continue
             
-            # 2. Hämtning
+            # 2. Hämtningssteget (Retrieval)
             context_text = perform_vector_search(user_query) 
             
             if context_text is None:
                 continue
             
-            # 3. Generering
+            # 3. Genereringssteget (Generation)
             validated_output = run_gemini_query(user_query, context_text) 
             
-            # 4. Utskrift
+            # 4. UTSKRIFTSSTEGET
             if validated_output and validated_output.results:
                 print("\n--- Strukturerade och Faktabaserade Resultat (Lista) ---")
                 for i, restaurant in enumerate(validated_output.results, 1):
@@ -269,8 +303,11 @@ def run_rag_agent():
         elif choice == '2':
             add_restaurant()
             
+        elif choice == '3': # HANTERA NYTT VAL
+            list_all_names()
+            
         else:
-            print("Ogiltigt val. Vänligen välj 1, 2, eller 'q'.")
+            print("Ogiltigt val. Vänligen välj 1, 2, 3, eller 'q'.")
 
 if __name__ == "__main__":
     run_rag_agent()
