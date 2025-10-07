@@ -11,10 +11,6 @@ from google.genai.errors import APIError
 from models import Restaurant, RestaurantList 
 
 
-# Rådata (LanceDB) - RAG sökning - LLM tolkning - Pydantic - Restaurantobjekt
-
-
-
 # --- SETUP (Konstanter & Initiering) ---
 load_dotenv()
 
@@ -28,71 +24,88 @@ if not GEMINI_API_KEY:
 # Initiera klienter, databas, table och embeddingmodell
 client = genai.Client(api_key=GEMINI_API_KEY)
 db = lancedb.connect(DB_PATH)
-table = db.open_table("restaurants_db")
+try:
+    # Försök öppna tabellen. Misslyckas om setup_db.py inte har körts.
+    table = db.open_table("restaurants_db")
+except Exception as e:
+    print(f"FEL: Kunde inte öppna 'restaurants_db'. Har du kört setup_db.py? Fel: {e}")
+    exit()
+
 embedding_model = SentenceTransformer(EMBEDDING_MODEL_NAME) 
 
 
-# HANTERAR ANVÄNDARINPUT (SRP: Input & Stadsdetektering)
-def get_user_query(input_prompt: str) -> tuple[str | None, str | None]:
+# --- FUNKTIONER ---
+
+# HANTERAR ANVÄNDARINPUT
+def get_user_query(input_prompt: str) -> str | None:
     """
-    Hanterar inmatning från användaren, checkar för avslut, och detekterar stad.
-    Returnerar (user_input, city)
+    Hanterar inmatning från användaren och checkar för avslut.
+    Returnerar user_input eller None.
     """
     user_input = input(input_prompt)
     if user_input.lower() == 'q':
-        return None, None
+        return None
     
-    input_lower = user_input.lower()
-    city = None
-    if "göteborg" in input_lower or "gbg" in input_lower:
-        city = "Göteborg"
-    elif "uddevalla" in input_lower:
-        city = "Uddevalla"
+    return user_input.strip()
+
+
+# HANTERAR HÄMTNING (RAG: Retrieval)
+def perform_vector_search(query: str) -> str | None:
+    """
+    1. Frågar efter stad för filtrering.
+    2. Hämtar de 5 bäst matchande recensionerna från LanceDB.
+    3. Formaterar träffarna tydligt som kontext för LLM.
+    4. Returnerar den formaterade kontexten.
+    """
+    
+    # 1. HANTERING AV STADSFILTER (Manuell input)
+    city_filter = input("Ange staden att söka i (Göteborg/Uddevalla): ").strip()
+    
+    if city_filter.lower() in ["gbg", "göteborg"]:
+        city_filter_db = "Göteborg"
+    elif city_filter.lower() in ["uddevalla"]:
+        city_filter_db = "Uddevalla"
+    else:
+        print("[AVBRUTEN]: Ogiltig stad angiven.")
+        return None
         
-    return user_input, city
-
-
-# HANTERAR HÄMTNING (SRP: Vektoriserar & Söker i LanceDB)
-def perform_vector_search(query: str, city: str | None) -> str | None:
-    """
-    Vektoriserar frågan, söker i LanceDB och formaterar de 3 bästa träffarna.
-    Returnerar den kombinerade kontextsträngen, eller None vid fel/ingen träff.
-    """
-    
-    print("\n Söker i LanceDB ")
-
+    # 2. VEKTORISERING OCH SÖKNING
+    print(f"\n Söker i LanceDB och filtrerar på {city_filter_db}")
     try:
         query_vector = embedding_model.encode(query).tolist()
-        search_query = table.search(query_vector)
-        
-        if city:
-            search_query = search_query.where(f"city = '{city}'")
-            print(f"-> Sökningen filtreras till staden: {city}")
-        
-        # Hämta de 3 bästa träffarna
-        search_results = search_query.limit(3).to_list()
-
     except Exception as e:
-        print(f"[FEL]: Kunde inte söka i LanceDB. Fel: {e}")
+        print(f"[FEL]: Kunde inte vektorisera sökfrågan. Fel: {e}")
         return None
-    
-    # Förbered kontexten för Gemini
+        
+    search_query = table.search(query_vector)
+    search_query = search_query.where(f"city = '{city_filter_db}'")
+    search_results = search_query.limit(5).to_list() 
+
     if not search_results:
-        print("Ingen information tillgänglig i databasen för din sökning.")
+        print(f"Hittade inga relevanta recensioner i databasen för {city_filter_db}.")
         return None
+
+    print(f"Hittade {len(search_results)} potentiella fakta. Förbereder för Gemini...")
     
-    context_blocks = []
-    for i, result in enumerate(search_results, 1):
-        context_blocks.append(f"KONTEXT #{i} (Stad: {result['city']}):\n{result['text']}")
-    
-    context_text = "\n---\n".join(context_blocks)
-    print(f"Hittade {len(search_results)} potentiella fakta. Skickar till Gemini...")
-    
-    return context_text
+    # 3. FORMULERA KONTEXTEN TYDLIGT (LÖSNINGEN MOT HALLUCINATIONER)
+    context_text = []
+    for result in search_results:
+        # Tydlig etikettering hjälper LLM:en att korrekt extrahera Namn, Stad, etc.
+        context_str = (
+            f"--- START RESTAURANGFAKTA ---\n"
+            f"Namn: {result['name']}\n"
+            f"Stad: {result['city']}\n"
+            f"Recension/Beskrivning: {result['text']}\n"
+            f"--- SLUT RESTAURANGFAKTA ---\n"
+        )
+        context_text.append(context_str)
+
+    # 4. RETURNERA DEN SAMMANSTÄLLDA KONTEXTEN
+    return "\n".join(context_text)
 
 
-# HANTERAR GENERERING (SRP: LLM-anrop & Validering)
-def generate_structured_response(user_query: str, context: str) -> RestaurantList | None:
+# HANTERAR GENERERING (RAG: Generation)
+def run_gemini_query(user_query: str, context: str) -> RestaurantList | None: 
     """
     Skapar prompten, anropar Gemini och validerar svaret mot RestaurantList.
     Returnerar det validerade Pydantic-objektet.
@@ -100,12 +113,13 @@ def generate_structured_response(user_query: str, context: str) -> RestaurantLis
     
     print("\n--- Gör resultatet till strukturerat JSON med Gemini ---")
 
+    # VIKTIGT: Skärp instruktionerna mot hallucinationer
     system_instruction = (
-        "Du är en expert på strukturerad JSON-extraktion. "
-        "Analysera noga den angivna KONTEXTEN, som innehåller upp till 3 restaurangbeskrivningar. "
-        "Ditt mål är att extrahera information för ALLA restauranger som är relevanta för användarens fråga. "
-        "Fyll i JSON-schemat för **RestaurantList** genom att inkludera ALLA restauranger i 'results'-listan. "
-        "Om ett fält saknas i kontexten, använd värdet 'Information saknas'."
+        """Du är en expert på att extrahera strukturerad data. 
+        Din uppgift är att läsa igenom den bifogade kontexten (recensionstexterna) och ENDAST returnera information som uttryckligen nämns i dessa texter. 
+        Om ett fält (som 'Adress' eller 'Betyg') inte kan hittas i kontexten för en specifik restaurang, måste du sätta värdet till 'Information saknas'. 
+        Du får ABSOLUT INTE gissa, fabricera, eller hämta information från ditt allmänna vetande.
+        Namn och Stad finns redan explicit i kontexten; använd dessa värden direkt."""
     )
     
     rag_prompt = f"""
@@ -130,13 +144,12 @@ def generate_structured_response(user_query: str, context: str) -> RestaurantLis
             ),
         )
 
-        # Validera och deserialisera mot RestaurantList
         json_string = response.text.strip()
         validated_output: RestaurantList = RestaurantList.model_validate_json(json_string)
         return validated_output
         
     except ValidationError as e:
-        print(f"\n[FEL]: Valideringsfel. AI:n svarade med fel format: {e}")
+        print(f"\n[FEL]: Valideringsfel. AI:n svarade med fel format. Kontrollera schemat. Fel: {e}")
     except APIError as e:
         print(f"\n[KRITISKT FEL]: Ett Gemini API-fel uppstod. Kontrollera din nyckel och kvot: {e}")
     except Exception as e:
@@ -148,19 +161,28 @@ def generate_structured_response(user_query: str, context: str) -> RestaurantLis
 def add_restaurant():
     """
     Hanterar inmatning av ny restaurangdata, skapar inbäddningar och lagrar den 
-    i LanceDB-tabellen. Matchar det ursprungliga schemat (name, city, text, vector).
+    i LanceDB-tabellen.
     """
     print("\n--- LÄGG TILL NY RESTAURANG ---")
     
     # 1. INPUT-STEGET
-    restaurant_name = input("Restaurangens namn: ")
-    restaurant_city = input("Stad: ")
-    review = input("Recensera restaurangen (T.ex. 'Bra mat, högt betyg 4.5, Thai-mat'): ")
+    restaurant_name = input("Restaurangens namn: ").strip()
+    restaurant_city = input("Stad: ").strip()
+    review = input("Recensera restaurangen (T.ex. 'Bra mat, högt betyg 4.5, Thai-mat'): ").strip()
     
     if not (restaurant_name and restaurant_city and review):
         print("[AVBRUTEN]: Alla fält måste fyllas i.")
         return
 
+    # Säkra att stadsnamnet är konsekvent
+    if restaurant_city.lower() in ["gbg", "göteborg"]:
+        final_city = "Göteborg"
+    elif restaurant_city.lower() in ["uddevalla"]:
+        final_city = "Uddevalla"
+    else:
+        print("[FEL]: Vald stad måste vara 'Göteborg' eller 'Uddevalla'. Avbryter.")
+        return
+        
     # 2. VEKTORISERINGS- & EMBEDDING-STEGET
     try:
         print("-> Skapar inbäddning (vektor) från recensionen...")
@@ -170,22 +192,18 @@ def add_restaurant():
         return
 
     # 3. DATABASSTRUKTUR & 4. SPARA-STEGET
-    
-    # Skicka BARA de fält som finns i det ursprungliga schemat från setup_db.py
     data_to_save = [
         {
-            # OBS: 'id' är borttaget härifrån
             "name": restaurant_name,
-            "city": restaurant_city,
+            "city": final_city,
             "text": review,
             "vector": embedding,
         }
     ]
     
     try:
-        # table.add() lägger till den nya raden
         table.add(data_to_save)
-        print(f"\n[KLART]: '{restaurant_name}' lades till i databasen.")
+        print(f"\n[KLART]: '{restaurant_name}' lades till i databasen för {final_city}.")
         print(f"Den nya recensionen kan nu sökas i RAG-agenten.")
     except Exception as e:
         print(f"[FEL]: Kunde inte spara data till LanceDB. Fel: {e}")
@@ -218,24 +236,24 @@ def run_rag_agent():
             
         elif choice == '1':
             # --- SÖK ---
-            prompt = "Sök efter en restaurang. (Ex: 'Kinesiskt i Göteborg' eller 'q' för att avbryta sökningen):\n> "
+            prompt = "Sök efter en restaurang. (Ex: 'Kinesiskt', 'Barnvänligt, eller 'q' för att avbryta sökningen):\n> "
             
             # 1. Ta emot input
-            user_query, city = get_user_query(prompt) 
+            user_query = get_user_query(prompt)
             
             if user_query is None:
-                # Användaren skrev 'q' i sökprompten, gå tillbaka till huvudmenyn
                 continue
             
-            # 2. Hämtningssteget
-            context_text = perform_vector_search(user_query, city)
+            # 2. Hämtning
+            context_text = perform_vector_search(user_query) 
+            
             if context_text is None:
                 continue
             
-            # 3. Genereringssteget
-            validated_output = generate_structured_response(user_query, context_text)
+            # 3. Generering
+            validated_output = run_gemini_query(user_query, context_text) 
             
-            # 4. UTSKRIFTSSTEGET (Den kompletta logiken)
+            # 4. Utskrift
             if validated_output and validated_output.results:
                 print("\n--- Strukturerade och Faktabaserade Resultat (Lista) ---")
                 for i, restaurant in enumerate(validated_output.results, 1):
@@ -243,7 +261,6 @@ def run_rag_agent():
                     print(f"Namn: {restaurant.name}")
                     print(f"Adress: {restaurant.address}")
                     print(f"Betyg: {restaurant.rating}")
-                    # Säker utskrift av köksstilar som en kommaseparerad sträng
                     print(f"Köksstilar: {', '.join(restaurant.cuisines)}") 
                 print("-----------------------------------------------------")
             elif validated_output:
