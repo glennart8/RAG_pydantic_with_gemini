@@ -58,7 +58,7 @@ def perform_vector_search(query: str, city_filter: str):
     """
     
     # 1. HANTERING AV STADSFILTER (Manuell input)
-    city_filter = input("Ange staden att söka i (Göteborg/Uddevalla): ").strip()
+    # city_filter = input("Ange staden att söka i (Göteborg/Uddevalla): ").strip() - TAS BORT PGA jag använder inparametern från fastapi/streamlit nu
     
     if city_filter.lower() in ["gbg", "göteborg"]:
         city_filter_db = "Göteborg"
@@ -99,9 +99,11 @@ def perform_vector_search(query: str, city_filter: str):
         )
         context_text.append(context_str)
 
-    # 4. RETURNERA DEN SAMMANSTÄLLDA KONTEXTEN
-    return "\n".join(context_text)
-
+    # # 4. RETURNERA DEN SAMMANSTÄLLDA KONTEXTEN
+    # return "\n".join(context_text)
+    
+    rag_result = run_gemini_query(query, "\n".join(context_text))
+    return rag_result
 
 # HANTERAR GENERERING (RAG: Generation)
 def run_gemini_query(user_query: str, context: str) -> RestaurantList | None: 
