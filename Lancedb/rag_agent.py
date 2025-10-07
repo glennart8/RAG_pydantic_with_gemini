@@ -10,14 +10,17 @@ from google.genai.errors import APIError
 
 from models import Restaurant, RestaurantList 
 
+
+# Rådata (LanceDB) - RAG sökning - LLM tolkning - Pydantic - Restaurantobjekt
+
+
+
 # --- SETUP (Konstanter & Initiering) ---
 load_dotenv()
 
 MODEL_NAME = "gemini-2.5-flash" 
 DB_PATH = "my_restaurant_db"
 EMBEDDING_MODEL_NAME = 'all-MiniLM-L6-v2' 
-
-# Läs API-nyckel tidigt
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
     raise ValueError("GEMINI_API_KEY saknas. Kontrollera din .env-fil.")
@@ -142,43 +145,115 @@ def generate_structured_response(user_query: str, context: str) -> RestaurantLis
     return None
 
 
-# KÖR AGENT (Orkestrering)
+def add_restaurant():
+    """
+    Hanterar inmatning av ny restaurangdata, skapar inbäddningar och lagrar den 
+    i LanceDB-tabellen. Matchar det ursprungliga schemat (name, city, text, vector).
+    """
+    print("\n--- LÄGG TILL NY RESTAURANG ---")
+    
+    # 1. INPUT-STEGET
+    restaurant_name = input("Restaurangens namn: ")
+    restaurant_city = input("Stad: ")
+    review = input("Recensera restaurangen (T.ex. 'Bra mat, högt betyg 4.5, Thai-mat'): ")
+    
+    if not (restaurant_name and restaurant_city and review):
+        print("[AVBRUTEN]: Alla fält måste fyllas i.")
+        return
+
+    # 2. VEKTORISERINGS- & EMBEDDING-STEGET
+    try:
+        print("-> Skapar inbäddning (vektor) från recensionen...")
+        embedding = embedding_model.encode(review).tolist()
+    except Exception as e:
+        print(f"[FEL]: Kunde inte skapa inbäddning. Avbryter. Fel: {e}")
+        return
+
+    # 3. DATABASSTRUKTUR & 4. SPARA-STEGET
+    
+    # Skicka BARA de fält som finns i det ursprungliga schemat från setup_db.py
+    data_to_save = [
+        {
+            # OBS: 'id' är borttaget härifrån
+            "name": restaurant_name,
+            "city": restaurant_city,
+            "text": review,
+            "vector": embedding,
+        }
+    ]
+    
+    try:
+        # table.add() lägger till den nya raden
+        table.add(data_to_save)
+        print(f"\n[KLART]: '{restaurant_name}' lades till i databasen.")
+        print(f"Den nya recensionen kan nu sökas i RAG-agenten.")
+    except Exception as e:
+        print(f"[FEL]: Kunde inte spara data till LanceDB. Fel: {e}")
+        
+    return
+
+
+# KÖR AGENT (Orkestrering och Menylogik)
 
 def run_rag_agent():
     print("================ RAG-AGENT STARTAD (Gemini)================")
     print(f"Modell: {MODEL_NAME} | Databas: {DB_PATH}")
     
-    prompt = "Sök efter en restaurang. (Ex: 'Kinesiskt i Göteborg' eller 'q' för att avsluta):\n> "
     
     while True:
-        # 1. Input
-        user_query, city = get_user_query(prompt)
-        if user_query is None:
+        # VISA MENYN
+        print("\n-----------------------------------------------------")
+        print("Välj ett alternativ:")
+        print("1: Sök restaurang")
+        print("2: Lägg till restaurang")
+        print("q: Avsluta")
+        print("-----------------------------------------------------")
+        
+        choice = input("Val: ").lower().strip()
+        
+        # HANTERA VAL
+        if choice == 'q':
             print("Avslutar RAG-agent.")
             break
-        
-        # 2. Hämtning
-        context_text = perform_vector_search(user_query, city)
-        if context_text is None:
-            continue
-        
-        # 3. Generering
-        validated_output = generate_structured_response(user_query, context_text)
-        
-        # 4. Utskrift
-        if validated_output and validated_output.results:
-            print("\n--- Strukturerade och Faktabaserade Resultat (Lista) ---")
-            for i, restaurant in enumerate(validated_output.results, 1):
-                print(f"--- RESTAURANG #{i} ---")
-                print(f"Namn: {restaurant.name}")
-                print(f"Adress: {restaurant.address}")
-                print(f"Betyg: {restaurant.rating}")
-                # Använder f-sträng eller join för att cuisines är en lista
-                print(f"Köksstilar: {', '.join(restaurant.cuisines)}") 
-            print("-----------------------------------------------------")
-        elif validated_output:
-            print("Gemini kunde inte extrahera några relevanta restauranger från kontexten trots funna träffar.")
-
+            
+        elif choice == '1':
+            # --- SÖK ---
+            prompt = "Sök efter en restaurang. (Ex: 'Kinesiskt i Göteborg' eller 'q' för att avbryta sökningen):\n> "
+            
+            # 1. Ta emot input
+            user_query, city = get_user_query(prompt) 
+            
+            if user_query is None:
+                # Användaren skrev 'q' i sökprompten, gå tillbaka till huvudmenyn
+                continue
+            
+            # 2. Hämtningssteget
+            context_text = perform_vector_search(user_query, city)
+            if context_text is None:
+                continue
+            
+            # 3. Genereringssteget
+            validated_output = generate_structured_response(user_query, context_text)
+            
+            # 4. UTSKRIFTSSTEGET (Den kompletta logiken)
+            if validated_output and validated_output.results:
+                print("\n--- Strukturerade och Faktabaserade Resultat (Lista) ---")
+                for i, restaurant in enumerate(validated_output.results, 1):
+                    print(f"--- RESTAURANG #{i} ---")
+                    print(f"Namn: {restaurant.name}")
+                    print(f"Adress: {restaurant.address}")
+                    print(f"Betyg: {restaurant.rating}")
+                    # Säker utskrift av köksstilar som en kommaseparerad sträng
+                    print(f"Köksstilar: {', '.join(restaurant.cuisines)}") 
+                print("-----------------------------------------------------")
+            elif validated_output:
+                print("Gemini kunde inte extrahera några relevanta restauranger från kontexten trots funna träffar.")
+            
+        elif choice == '2':
+            add_restaurant()
+            
+        else:
+            print("Ogiltigt val. Vänligen välj 1, 2, eller 'q'.")
 
 if __name__ == "__main__":
     run_rag_agent()
