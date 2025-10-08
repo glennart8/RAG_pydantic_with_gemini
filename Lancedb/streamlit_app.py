@@ -30,17 +30,6 @@ st.markdown(
         unsafe_allow_html=True
     )
 
-# Använder cache för att endast anropa API:et en gång, KOMMER IHÅG RESULTATET, ANROPAR INTE FUNKTIONEN IGEN VID INTERAKTION OM INTE TIDEN GÅTT UT
-@st.cache_data(ttl=3600)
-def load_all_names() -> List[str]:
-    try:
-        response = requests.get(f"{BASE_URL}/restaurants")
-        if response.status_code == 200:
-            return response.json().get('names', [])
-        st.error(f"Kunde inte ladda restaurangnamn. Status: {response.status_code}")
-    except requests.exceptions.ConnectionError:
-        st.warning("⚠️ API-anslutning misslyckades. Kontrollera att FastAPI-servern körs.")
-
 st.cache_data(ttl=3600)
 def load_all_cities() -> List[str]:
     try:
@@ -63,19 +52,14 @@ def load_restaurants_by_city(city_name: str) -> List[str]:
 
 st.header("Restaurants with RAG")
 
-# Ladda alla namn
-all_restaurant_names = load_all_names()
-all_restaurant_names.sort()
-
 all_cities = load_all_cities()
 all_cities.sort()
-
 
 cols = col1, col2 = st.columns(2)
 
 with col1:
     query = st.text_input("Beskriv vad du söker: ")
-    city = st.text_input("Stad: ")
+    city = st.selectbox("Stad: ", all_cities)
 
     if st.button("Sök"):
         

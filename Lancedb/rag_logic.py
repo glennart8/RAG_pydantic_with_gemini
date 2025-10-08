@@ -214,40 +214,6 @@ def add_restaurant():
     return
 
 
-# # --- FUNKTION: VISA ALLA NAMN ---
-# def list_all_names():
-#     """
-#     Hämtar alla poster från databasen och skriver ut namnen.
-#     Använder to_pandas() direkt för maximal kompatibilitet.
-#     """
-#     print("\n--- ALLA RESTAURANGNAMN I DATABASEN ---")
-#     try:
-#         # Hämta all data och välj sedan kolumnerna i Pandas
-#         all_restaurants = table.to_pandas()
-        
-#         if all_restaurants.empty:
-#             print("Databasen är tom.")
-#             return
-
-#         # Välj endast de nödvändiga kolumnerna och sortera
-#         restaurants_to_display = all_restaurants[['name', 'city']].sort_values(by='city')
-
-#         # Ingen nuvarande stad än
-#         current_city = None
-#         for _, row in restaurants_to_display.iterrows(): 
-#             if row['city'] != current_city: # Om city inte är None, t.ex. Göteborg
-#                 print(f"\n[{row['city'].upper()}]:") # Skriv ut göteborg
-#                 current_city = row['city'] # göteborg blir nuvarande stad
-            
-#             print(f"- {row['name']}")   # skriv ut restauranger för göteborg (row)
-            
-#             # Sedan börjar loopen om, nuvarande stad är göteborg, nästa restaurang skrivs ut. Sedan byts stad och loopen upprepas
-        
-#         print("------------------------------------------")
-
-#     except Exception as e:
-#         print(f"[KRITISKT FEL]: Kunde inte läsa från databasen. Fel: {e}")
-
 def list_all_unique_names():
     all_restaurants = table.to_pandas()
     unique_names = all_restaurants['name'].unique().tolist()
