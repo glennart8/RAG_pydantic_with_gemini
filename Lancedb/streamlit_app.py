@@ -41,12 +41,34 @@ def load_all_names() -> List[str]:
     except requests.exceptions.ConnectionError:
         st.warning("⚠️ API-anslutning misslyckades. Kontrollera att FastAPI-servern körs.")
 
+st.cache_data(ttl=3600)
+def load_all_cities() -> List[str]:
+    try:
+        response = requests.get(f"{BASE_URL}/cities")
+        if response.status_code == 200:
+            return response.json().get('cities', [])
+        st.error(f"Kunde inte ladda städer. Status: {response.status_code}")
+    except requests.exceptions.ConnectionError:
+        st.warning("API-anslutning misslyckades")
+
+st.cache_data(ttl=3600)
+def load_restaurants_by_city(city_name: str) -> List[str]:
+    try:
+        response = requests.get(f"{BASE_URL}/restaurants_by_city?city_name={city_name}")
+        if response.status_code == 200:
+            return response.json().get('names', [])
+        st.error(f"Kunde inte ladda restaurangnamn för {city_name}. Status: {response.status_code}")
+    except requests.exceptions.ConnectionError:
+        st.warning("API-anslutning misslyckades")
 
 st.header("Restaurants with RAG")
 
 # Ladda alla namn
 all_restaurant_names = load_all_names()
 all_restaurant_names.sort()
+
+all_cities = load_all_cities()
+all_cities.sort()
 
 
 cols = col1, col2 = st.columns(2)
@@ -75,14 +97,22 @@ with col1:
 with col2:
     st.header("Hitta detaljer")
     
+    chosen_city = st.selectbox(
+        "Välj stad: ",
+        all_cities
+    )
+    
+    restaurants_by_city = load_restaurants_by_city(chosen_city)
+    restaurants_by_city.sort()
+    
     # Skapa rullgardinsmenyn
-    if not all_restaurant_names:
+    if not restaurants_by_city:
         st.warning("Kunde inte ladda restauranglistan.")
         selected_name = None
     else:
         selected_name = st.selectbox(
             "Välj restaurang för detaljer:", 
-            options=["— Välj Restaurang —"] + all_restaurant_names
+            options=["— Välj Restaurang —"] + restaurants_by_city
         )
 
     if selected_name and selected_name != "— Välj Restaurang —":

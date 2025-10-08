@@ -253,6 +253,17 @@ def list_all_unique_names():
     unique_names = all_restaurants['name'].unique().tolist()
     return unique_names
 
+def list_all_unique_cities():
+    all_restaurants = table.to_pandas()
+    unique_cities = all_restaurants['city'].unique().tolist()
+    return unique_cities
+
+def list_restaurants_by_city(city_name: str):
+    all_restaurants = table.to_pandas()
+    names_in_city = all_restaurants[all_restaurants['city'] == city_name]['name'].tolist()
+    return names_in_city
+
+
 def get_details_by_name(restaurant_name: str):
     
     try:

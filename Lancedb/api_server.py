@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException
-from rag_logic import perform_vector_search, run_gemini_query, list_all_unique_names, get_details_by_name
+from rag_logic import perform_vector_search, run_gemini_query, list_all_unique_names, get_details_by_name, list_all_unique_cities, list_restaurants_by_city
 
 
 app = FastAPI()
@@ -43,7 +43,22 @@ async def get_restaurant_details(restaurant_name: str):
     
     except Exception as e:
         raise HTTPException(status_code=500, detail="Kunde inte hämta detaljer.")
+    
+@app.get("/cities", summary="Hämtar en lista med alla städer")
+async def get_all_cities():
+    try:
+        unique_cities = list_all_unique_cities()        
+        return {"cities": unique_cities}
+        
+    except Exception as e:  
+        raise HTTPException(status_code=500, detail="Kunde inte hämta städer.")
         
         
-        
+@app.get("/restaurants_by_city")
+async def get_restaurants_by_city(city_name: str):
+    try:
+        restaurant_names_by_city = list_restaurants_by_city(city_name)
+        return {"names": restaurant_names_by_city}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Kunde inte hämta restaurangnamn.")
 
