@@ -119,5 +119,65 @@ RAW_RESTAURANT_DATA = [
         "name": "Dannys Kök & Bar", 
         "text": "På Norra Drottninggatan 12 i Uddevalla kombinerar restaurang med nöje, och erbjuder både middag och aktiviteter som shuffleboard och biljard. De har helglunch och Happy Hour. Rating: 4.0. Köksstilar: Internationell, Bar, Lunch.", 
         "city": "Uddevalla"
+    },
+    {
+        "name": "Cheri-Lee",
+        "text": "Elegant dinner club på Avenyn med moderna asiatiska influenser, blommiga soffor och en festlig atmosfär. Rating: 4.4. Köksstilar: Asiatisk, Modern.",
+        "city": "Göteborg"
+    },
+    {
+        "name": "Epoque",
+        "text": "Stilren vinbar och restaurang på Södra Vägen 8, känd för sin avslappnade men sofistikerade miljö. Rating: 4.2. Köksstilar: Vinbar, Internationell.",
+        "city": "Göteborg"
+    },
+    {
+        "name": "Tavolo",
+        "text": "Italiensk-amerikansk restaurang med en meny som blandar klassiska rätter med moderna inslag. Rating: 4.3. Köksstilar: Italiensk, Amerikansk.",
+        "city": "Göteborg"
+    },
+    {
+        "name": "Koch Restaurang",
+        "text": "Förstklassig matupplevelse med noggrant utvald vinlista och elegant miljö. Rating: 4.5. Köksstilar: Internationell, Fine Dining.",
+        "city": "Uddevalla"
+    },
+    {
+        "name": "Varvet by Butlers",
+        "text": "Modern restaurang med fokus på skandinavisk matlagning och imponerande utsikt över hamnen. Rating: 4.3. Köksstilar: Skandinavisk, Modern.",
+        "city": "Uddevalla"
+    },
+    {
+        "name": "Stallgården Krog & Kafé",
+        "text": "Mysig krog som serverar hemlagade rätter i lantlig miljö, perfekt för en avslappnad middag. Rating: 4.2. Köksstilar: Svensk, Husmanskost.",
+        "city": "Uddevalla"
+    },
+    {
+        "name": "Frantzén",
+        "text": "Exklusiv restaurang med tre Michelin-stjärnor, känd för innovativ matlagning och exceptionell service. Rating: 5.0. Köksstilar: Nordisk, Fine Dining.",
+        "city": "Stockholm"
+    },
+    {
+        "name": "Ekstedt",
+        "text": "Nordisk matlagning med vedeldad teknik, skapad av stjärnkocken Niklas Ekstedt. Rating: 4.9. Köksstilar: Nordisk, Modern.",
+        "city": "Stockholm"
+    },
+    {
+        "name": "Operakällaren",
+        "text": "Historisk restaurang med klassisk svensk matlagning och elegant atmosfär, belägen nära operahuset. Rating: 4.8. Köksstilar: Svensk, Klassisk.",
+        "city": "Stockholm"
+    },
+    {
+        "name": "Vollmers",
+        "text": "Tvåstjärnig Michelin-restaurang med modern tolkning av skånska smaker. Rating: 5.0. Köksstilar: Nordisk, Fine Dining.",
+        "city": "Malmö"
+    },
+    {
+        "name": "Lyran",
+        "text": "Säsongsbetonad matlagning med lokala råvaror i en intim miljö. Rating: 4.7. Köksstilar: Nordisk, Modern.",
+        "city": "Malmö"
+    },
+    {
+        "name": "Västergatan",
+        "text": "Klassiska svenska rätter med en modern twist, känd för sin varma atmosfär. Rating: 4.6. Köksstilar: Svensk, Modern.",
+        "city": "Malmö"
     }
 ]

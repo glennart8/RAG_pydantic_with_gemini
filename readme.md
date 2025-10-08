@@ -12,10 +12,12 @@ Med denna struktur kan man själv fylla på med restaurangbesök, recensera för
 
 # TODO:
 - [x] Lägga till recensioner för restauranger i terminalen
-- [ ] Lägga till recensioner för restauranger i streamlit
+- [x] Lägga till recensioner för restauranger i streamlit
 - [x] Gå via fastapi till frontend i streamlit
 - [x] Om adress inte nämns i den råa textinputen, guida llm att hitta adressen på nätet
-- [ ] Visa info om vald restaurang i streamlit 
+- [x] Visa info om vald restaurang i streamlit 
+- [ ] Ändra så att den verkligen visar thai/asiatiskt eller liknadne och inte typ pizzerior när man söker efter thai
+- [ ] Gör en snygg design
 
 # STEG
 - Retriaval/Hämta/Lägg till: Vektorinbäddningar, jag använder embedding_model.encode() för att göra data sökbar i LanceDB.

@@ -9,18 +9,18 @@ from google.genai import types
 from google.genai.errors import APIError 
 
 from models import Restaurant, RestaurantList 
-from typing import List, Dict, Any
-
 
 # --- SETUP (Konstanter & Initiering) ---
 load_dotenv()
 
 MODEL_NAME = "gemini-2.5-flash" 
-DB_PATH = "../my_restaurant_db"
-EMBEDDING_MODEL_NAME = 'all-MiniLM-L6-v2' 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
     raise ValueError("GEMINI_API_KEY saknas. Kontrollera din .env-fil.")
+
+DB_PATH = "../my_restaurant_db"
+EMBEDDING_MODEL_NAME = 'all-MiniLM-L6-v2' 
+
 
 # Initiera klienter, databas, table och embeddingmodell
 client = genai.Client(api_key=GEMINI_API_KEY)
@@ -34,19 +34,18 @@ except Exception as e:
 embedding_model = SentenceTransformer(EMBEDDING_MODEL_NAME) 
 
 
-# --- FUNKTIONER ---
 
 # HANTERAR ANVÄNDARINPUT
-def get_user_query(input_prompt: str) -> str | None:
-    """
-    Hanterar inmatning från användaren och checkar för avslut.
-    Returnerar user_input eller None.
-    """
-    user_input = input(input_prompt)
-    if user_input.lower() == 'q':
-        return None
+# def get_user_query(input_prompt: str) -> str | None:
+#     """
+#     Hanterar inmatning från användaren och checkar för avslut.
+#     Returnerar user_input eller None.
+#     """
+#     user_input = input(input_prompt)
+#     if user_input.lower() == 'q':
+#         return None
     
-    return user_input.strip()
+#     return user_input.strip()
 
 
 # HANTERAR HÄMTNING (RAG: Retrieval)
@@ -57,20 +56,8 @@ def perform_vector_search(query: str, city_filter: str):
     3. Formaterar träffarna tydligt som kontext för LLM.
     4. Returnerar den formaterade kontexten.
     """
-    
-    # 1. HANTERING AV STADSFILTER (Manuell input)
-    # city_filter = input("Ange staden att söka i (Göteborg/Uddevalla): ").strip() - TAS BORT PGA jag använder inparametern från fastapi/streamlit nu
-    
-    if city_filter.lower() in ["gbg", "göteborg"]:
-        city_filter_db = "Göteborg"
-    elif city_filter.lower() in ["uddevalla"]:
-        city_filter_db = "Uddevalla"
-    else:
-        print("[AVBRUTEN]: Ogiltig stad angiven.")
-        return None
-        
-    # 2. VEKTORISERING OCH SÖKNING
-    print(f"\n Söker i LanceDB och filtrerar på {city_filter_db}")
+
+    # VEKTORISERING OCH SÖKNING
     try:
         query_vector = embedding_model.encode(query).tolist()
     except Exception as e:
@@ -78,11 +65,11 @@ def perform_vector_search(query: str, city_filter: str):
         return None
         
     search_query = table.search(query_vector)
-    search_query = search_query.where(f"city = '{city_filter_db}'")
+    search_query = search_query.where(f"city = '{city_filter}'")
     search_results = search_query.limit(5).to_list() 
 
     if not search_results:
-        print(f"Hittade inga relevanta recensioner i databasen för {city_filter_db}.")
+        print(f"Hittade inga relevanta recensioner i databasen för {city_filter}.")
         return None
 
     print(f"Hittade {len(search_results)} potentiella fakta. Förbereder för Gemini...")
@@ -99,9 +86,6 @@ def perform_vector_search(query: str, city_filter: str):
             f"--- SLUT RESTAURANGFAKTA ---\n"
         )
         context_text.append(context_str)
-
-    # # 4. RETURNERA DEN SAMMANSTÄLLDA KONTEXTEN
-    # return "\n".join(context_text)
     
     rag_result = run_gemini_query(query, "\n".join(context_text))
     return rag_result
@@ -112,10 +96,8 @@ def run_gemini_query(user_query: str, context: str) -> RestaurantList | None:
     Skapar prompten, anropar Gemini och validerar svaret mot RestaurantList.
     Returnerar det validerade Pydantic-objektet.
     """
-    
-    print("\n--- Gör resultatet till strukturerat JSON med Gemini ---")
 
-    # VIKTIGT: Skärp instruktionerna mot hallucinationer
+    # VIKTIGT: Skärp instruktionerna mot hallucinationer - fortsätt med det
     system_instruction = (
         """Din uppgift är att agera som en dataextraktionsrobot. 
         Du får INTE filtrera resultaten. 
@@ -163,13 +145,13 @@ def run_gemini_query(user_query: str, context: str) -> RestaurantList | None:
 
 def add_restaurant(restaurant_name: str, restaurant_city: str, review: str) -> bool:
     """
-    Lägger till en ny recension i databasen genom att först skapa en vektor.
+    En boleansk metod som lägger till en ny recension i databasen genom att först skapa en vektor.
     """
     if not (restaurant_name and restaurant_city and review):
         return False
         
     try:
-        # 1. VEKTORISERING: Skapa inbäddning (vektor)
+        # VEKTORISERING: Skapa inbäddning (vektor)
         embedding = embedding_model.encode(review).tolist()
     except Exception as e:
         print(f"[FEL]: Kunde inte skapa inbäddning. Fel: {e}")
@@ -212,19 +194,14 @@ def list_restaurants_by_city(city_name: str):
 def get_details_by_name(restaurant_name: str):
     
     try:
-        # Sök
+        # Sök, filtrera och ta ut 1 (den enda)
         search_result = table.search()
-        
-        # Filtrera
         search_result = search_result.where(f"name = '{restaurant_name}'")
-        
-        # Begränsa resultatet till endast ett
         search_result = search_result.limit(1)
         
         # LanceDB returnerar en lista, även om den bara innehåller ett objekt.
         final_list = search_result.to_list() # Exekvera och hämta listan
         
-        # Om listan inte är tom, returnera det första (och enda) objektet
         if final_list:
             return final_list[0] 
         else:
