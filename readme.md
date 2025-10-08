@@ -1,6 +1,8 @@
 # RAG Agent: 
 ---
 
+![Restaurang RAG App](Lancedb/the_app.png)
+
 Strukturerad Dataextraktion (LanceDB + Gemini)
 
 Detta projekt demonstrerar en robust **Retrieval-Augmented Generation** (RAG)-pipeline. 
@@ -25,8 +27,6 @@ Med denna struktur kan man själv fylla på med restaurangbesök, recensera för
 - Generering: Response_schema=RestaurantList tvingar Gemini att svara i ett strukturerat format och att model_validate_json() validerar det svaret.
 
 - Streamlit frågar FastAPI, som frågar LanceDB för kontext, som skickas till Gemini, vars svar Pydantic validerar, och slutligen skickas det strukturerade svaret tillbaka till Streamlit för visning.
-
-![Restaurang RAG App](Lancedb/the_app.png)
 
 ![Restaurang RAG App Example](Lancedb/logo_for_github.png)
 
