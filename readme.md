@@ -26,6 +26,8 @@ Med denna struktur kan man själv fylla på med restaurangbesök, recensera för
 
 - Streamlit frågar FastAPI, som frågar LanceDB för kontext, som skickas till Gemini, vars svar Pydantic validerar, och slutligen skickas det strukturerade svaret tillbaka till Streamlit för visning.
 
+![Restaurang RAG App](Lancedb/the_app.png)
+
 ![Restaurang RAG App Example](Lancedb/logo_for_github.png)
 
 ---
