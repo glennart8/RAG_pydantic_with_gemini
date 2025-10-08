@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
-from rag_logic import perform_vector_search, run_gemini_query, list_all_unique_names, get_details_by_name, list_all_unique_cities, list_restaurants_by_city
-
+from rag_logic import perform_vector_search, run_gemini_query, list_all_unique_names, get_details_by_name, list_all_unique_cities, list_restaurants_by_city, add_restaurant
+from models import RestaurantReview
 
 app = FastAPI()
 
@@ -62,3 +62,22 @@ async def get_restaurants_by_city(city_name: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail="Kunde inte hämta restaurangnamn.")
 
+@app.post("/add_restaurant", summary="Lägger till en ny restaurangrecension")
+async def post_new_restaurant(review: RestaurantReview):
+    """
+    Tar emot recensionsdata (JSON-kropp) och anropar backend-logik för att spara den i databasen.
+    """
+    # FastAPI mappar automatiskt den inkommande JSON-datan till 'review'-objektet
+    success = add_restaurant(
+        restaurant_name=review.name,  
+        restaurant_city=review.city,  
+        review=review.text            
+    )
+    
+    if success:
+        return {"message": f"Recension för {review.name} i {review.city} sparad och vektoriserad."}
+    else:
+        raise HTTPException(status_code=500, detail="Kunde inte spara recensionen. Kontrollera serverloggar.")
+
+
+    

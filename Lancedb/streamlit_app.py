@@ -53,7 +53,6 @@ def load_restaurants_by_city(city_name: str) -> List[str]:
 st.header("Restaurants with RAG")
 
 all_cities = load_all_cities()
-all_cities.sort()
 
 cols = col1, col2 = st.columns(2)
 
@@ -87,7 +86,6 @@ with col2:
     )
     
     restaurants_by_city = load_restaurants_by_city(chosen_city)
-    restaurants_by_city.sort()
     
     # Skapa rullgardinsmenyn
     if not restaurants_by_city:
@@ -117,3 +115,32 @@ with col2:
                 
             else:
                 st.error(f"Kunde inte hitta detaljer för {selected_name}. Kontrollera /details endpointen.")
+
+with col1:
+    st.subheader("Lägg till en restaurang")
+    
+    name = st.text_input("Restaurangens namn: ")
+    city = st.selectbox("Stad:", all_cities, key="add_restaurant_city") # Måste lägga till key för att inte blanda ihop selectboxarna
+    text = st.text_input("Berätta om restaurangen: ")
+    
+    add_button = st.button("Lägg till restaurang")
+    
+    if add_button:
+        if name and city and text:
+            post_restaurant = requests.post(f"{BASE_URL}/add_restaurant", json={
+                "name": name,
+                "city": city,
+                "text": text
+            })
+            
+            if post_restaurant.status_code == 200:
+                st.success("Restaurangen har lagts till!")
+            else:
+                st.error(f"Något gick fel: {post_restaurant.status_code}")
+        else:
+            st.warning("Fyll i alla fält innan du lägger till restaurangen.")
+    
+    
+    
+        
+    

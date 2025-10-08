@@ -15,3 +15,12 @@ class RestaurantList(BaseModel):
     results: List[Restaurant] = Field(
         description="En lista som innehåller de mest relevanta restaurangobjekten extraherade från kontexten."
     )
+    
+class RestaurantReview(BaseModel):
+    """
+    Modell för att hantera data som tas emot via POST-förfrågan 
+    när en ny recension läggs till.
+    """
+    name: str
+    city: str
+    text: str

@@ -161,57 +161,36 @@ def run_gemini_query(user_query: str, context: str) -> RestaurantList | None:
     return None
 
 
-def add_restaurant():
+def add_restaurant(restaurant_name: str, restaurant_city: str, review: str) -> bool:
     """
-    Hanterar inmatning av ny restaurangdata, skapar inbäddningar och lagrar den 
-    i LanceDB-tabellen.
+    Lägger till en ny recension i databasen genom att först skapa en vektor.
     """
-    print("\n--- LÄGG TILL NY RESTAURANG ---")
-    
-    # 1. INPUT-STEGET
-    restaurant_name = input("Restaurangens namn: ").strip()
-    restaurant_city = input("Stad: ").strip()
-    review = input("Recensera restaurangen (T.ex. 'Bra mat, högt betyg 4.5, Thai-mat'): ").strip()
-    
     if not (restaurant_name and restaurant_city and review):
-        print("[AVBRUTEN]: Alla fält måste fyllas i.")
-        return
-
-    # Säkra att stadsnamnet är konsekvent
-    if restaurant_city.lower() in ["gbg", "göteborg"]:
-        final_city = "Göteborg"
-    elif restaurant_city.lower() in ["uddevalla"]:
-        final_city = "Uddevalla"
-    else:
-        print("[FEL]: Vald stad måste vara 'Göteborg' eller 'Uddevalla'. Avbryter.")
-        return
+        return False
         
-    # 2. VEKTORISERINGS- & EMBEDDING-STEGET
     try:
-        print("-> Skapar inbäddning (vektor) från recensionen...")
+        # 1. VEKTORISERING: Skapa inbäddning (vektor)
         embedding = embedding_model.encode(review).tolist()
     except Exception as e:
-        print(f"[FEL]: Kunde inte skapa inbäddning. Avbryter. Fel: {e}")
-        return
+        print(f"[FEL]: Kunde inte skapa inbäddning. Fel: {e}")
+        return False
 
-    # 3. DATABASSTRUKTUR & 4. SPARA-STEGET
+    # 2. DATABASSTRUKTUR & SPARA
     data_to_save = [
         {
             "name": restaurant_name,
-            "city": final_city,
+            "city": restaurant_city,
             "text": review,
-            "vector": embedding, # Måste spara vektorn för att kunna söka och matcha i perform_vector_serach() sen
+            "vector": embedding,
         }
     ]
     
     try:
         table.add(data_to_save)
-        print(f"\n[KLART]: '{restaurant_name}' lades till i databasen för {final_city}.")
-        print(f"Den nya recensionen kan nu sökas i RAG-agenten.")
+        return True
     except Exception as e:
         print(f"[FEL]: Kunde inte spara data till LanceDB. Fel: {e}")
-        
-    return
+        return False
 
 
 def list_all_unique_names():
