@@ -18,7 +18,7 @@ Med denna struktur kan man själv fylla på med restaurangbesök, recensera för
 - [x] Gå via fastapi till frontend i streamlit
 - [x] Om adress inte nämns i den råa textinputen, guida llm att hitta adressen på nätet
 - [x] Visa info om vald restaurang i streamlit 
-- [ ] Ändra så att den verkligen visar thai/asiatiskt eller liknadne och inte typ pizzerior när man söker efter thai
+- [ ] Ändra så att den verkligen visar thai/asiatiskt eller liknande och inte typ pizzerior när man söker efter thai
 - [ ] Gör en snygg design
 
 # STEG

@@ -104,6 +104,7 @@ def run_gemini_query(user_query: str, context: str) -> RestaurantList | None:
         För VARJE separat restaurangfakta som du ser i KONTEXTEN (markerad av '--- START RESTAURANGFAKTA ---'), 
         MÅSTE du skapa en motsvarande post i JSON-listan. Om information saknas, fyll i 'Information saknas'.
         Adressen kan du alltid hitta på t.ex. Google Maps, uteslut postnummer och ort.
+        Försök att främst matcha typ av kök/land/råvara och visa den restaurangen överst i listan.
         """
     )
     
