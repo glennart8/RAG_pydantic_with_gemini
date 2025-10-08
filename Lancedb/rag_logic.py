@@ -9,6 +9,7 @@ from google.genai import types
 from google.genai.errors import APIError 
 
 from models import Restaurant, RestaurantList 
+from typing import List, Dict, Any
 
 
 # --- SETUP (Konstanter & Initiering) ---
@@ -119,7 +120,9 @@ def run_gemini_query(user_query: str, context: str) -> RestaurantList | None:
         """Din uppgift är att agera som en dataextraktionsrobot. 
         Du får INTE filtrera resultaten. 
         För VARJE separat restaurangfakta som du ser i KONTEXTEN (markerad av '--- START RESTAURANGFAKTA ---'), 
-        MÅSTE du skapa en motsvarande post i JSON-listan. Om information saknas, fyll i 'Information saknas'."""
+        MÅSTE du skapa en motsvarande post i JSON-listan. Om information saknas, fyll i 'Information saknas'.
+        Adressen kan du alltid hitta på t.ex. Google Maps, uteslut postnummer och ort.
+        """
     )
     
     rag_prompt = f"""
@@ -211,36 +214,66 @@ def add_restaurant():
     return
 
 
-# --- FUNKTION: VISA ALLA NAMN ---
-def list_all_names():
-    """
-    Hämtar alla poster från databasen och skriver ut namnen.
-    Använder to_pandas() direkt för maximal kompatibilitet.
-    """
-    print("\n--- ALLA RESTAURANGNAMN I DATABASEN ---")
+# # --- FUNKTION: VISA ALLA NAMN ---
+# def list_all_names():
+#     """
+#     Hämtar alla poster från databasen och skriver ut namnen.
+#     Använder to_pandas() direkt för maximal kompatibilitet.
+#     """
+#     print("\n--- ALLA RESTAURANGNAMN I DATABASEN ---")
+#     try:
+#         # Hämta all data och välj sedan kolumnerna i Pandas
+#         all_restaurants = table.to_pandas()
+        
+#         if all_restaurants.empty:
+#             print("Databasen är tom.")
+#             return
+
+#         # Välj endast de nödvändiga kolumnerna och sortera
+#         restaurants_to_display = all_restaurants[['name', 'city']].sort_values(by='city')
+
+#         # Ingen nuvarande stad än
+#         current_city = None
+#         for _, row in restaurants_to_display.iterrows(): 
+#             if row['city'] != current_city: # Om city inte är None, t.ex. Göteborg
+#                 print(f"\n[{row['city'].upper()}]:") # Skriv ut göteborg
+#                 current_city = row['city'] # göteborg blir nuvarande stad
+            
+#             print(f"- {row['name']}")   # skriv ut restauranger för göteborg (row)
+            
+#             # Sedan börjar loopen om, nuvarande stad är göteborg, nästa restaurang skrivs ut. Sedan byts stad och loopen upprepas
+        
+#         print("------------------------------------------")
+
+#     except Exception as e:
+#         print(f"[KRITISKT FEL]: Kunde inte läsa från databasen. Fel: {e}")
+
+def list_all_unique_names():
+    all_restaurants = table.to_pandas()
+    unique_names = all_restaurants['name'].unique().tolist()
+    return unique_names
+
+def get_details_by_name(restaurant_name: str):
+    
     try:
-        # Hämta all data och välj sedan kolumnerna i Pandas
-        all_restaurants = table.to_pandas()
+        # Sök
+        search_result = table.search()
         
-        if all_restaurants.empty:
-            print("Databasen är tom.")
-            return
-
-        # Välj endast de nödvändiga kolumnerna och sortera
-        restaurants_to_display = all_restaurants[['name', 'city']].sort_values(by='city')
-
-        # Ingen nuvarande stad än
-        current_city = None
-        for _, row in restaurants_to_display.iterrows(): 
-            if row['city'] != current_city: # Om city inte är None, t.ex. Göteborg
-                print(f"\n[{row['city'].upper()}]:") # Skriv ut göteborg
-                current_city = row['city'] # göteborg blir nuvarande stad
-            
-            print(f"- {row['name']}")   # skriv ut restauranger för göteborg (row)
-            
-            # Sedan börjar loopen om, nuvarande stad är göteborg, nästa restaurang skrivs ut. Sedan byts stad och loopen upprepas
+        # Filtrera
+        search_result = search_result.where(f"name = '{restaurant_name}'")
         
-        print("------------------------------------------")
-
+        # Begränsa resultatet till endast ett
+        search_result = search_result.limit(1)
+        
+        # LanceDB returnerar en lista, även om den bara innehåller ett objekt.
+        final_list = search_result.to_list() # Exekvera och hämta listan
+        
+        # Om listan inte är tom, returnera det första (och enda) objektet
+        if final_list:
+            return final_list[0] 
+        else:
+            return None
+        
     except Exception as e:
-        print(f"[KRITISKT FEL]: Kunde inte läsa från databasen. Fel: {e}")
+        print(f"Fel vid hämtning av detaljer för {restaurant_name}: {e}")
+        return None

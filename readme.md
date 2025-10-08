@@ -11,13 +11,18 @@ Projektet omvandlar ostrukturerad text (som beskrivningar och recensioner) till 
 Med denna struktur kan man själv fylla på med restaurangbesök, recensera för att sedan emd hjälp av LLM få ut datan för adress, rate osv.
 
 # TODO:
-- Lägga till recensioner för restauranger
-- Gå via fastapi till frontend i streamlit
+- [x] Lägga till recensioner för restauranger i terminalen
+- [ ] Lägga till recensioner för restauranger i streamlit
+- [x] Gå via fastapi till frontend i streamlit
+- [x] Om adress inte nämns i den råa textinputen, guida llm att hitta adressen på nätet
+- [ ] Visa info om vald restaurang i streamlit 
 
 # STEG
-- Retriaval/Hämta/Lägg till: Vektorinbäddningar, vi använder embedding_model.encode() för att göra data sökbar i LanceDB.
+- Retriaval/Hämta/Lägg till: Vektorinbäddningar, jag använder embedding_model.encode() för att göra data sökbar i LanceDB.
 - Augmentering: Använder explicit etikettering i perform_vector_search() för att förhindra hallucinationer.
 - Generering: Response_schema=RestaurantList tvingar Gemini att svara i ett strukturerat format och att model_validate_json() validerar det svaret.
+
+- Streamlit frågar FastAPI, som frågar LanceDB för kontext, som skickas till Gemini, vars svar Pydantic validerar, och slutligen skickas det strukturerade svaret tillbaka till Streamlit för visning.
 
 ![Restaurang RAG App Example](Lancedb/logo_for_github.png)
 
