@@ -18,10 +18,10 @@ Med denna struktur kan man själv fylla på med restaurangbesök, recensera för
 - [x] Gå via fastapi till frontend i streamlit
 - [x] Om adress inte nämns i den råa textinputen, guida llm att hitta adressen på nätet
 - [x] Visa info om vald restaurang i streamlit 
-- [ ] Ändra så att LLM läger större vikt vid typ av mat/land
+- [x] Ändra så att LLM läger större vikt vid typ av mat/land
 - [ ] Gör en snygg design
-- [ ] Skapa funktion för att ändra restaurang
-- [ ] Lägg in en slidebar (?) för betygsskalan när man lägger till/ändrar restaurang
+- [x] Skapa funktion för att ändra restaurang
+- [x] Lägg in en slider för betygsskalan när man lägger till/ändrar restaurang
 
 
 # STEG

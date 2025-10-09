@@ -9,6 +9,7 @@ BASE_URL = "http://localhost:8000"
 st.set_page_config(layout="wide")
 
 st.markdown(
+
     f"""
     <style>
     [data-testid="stAppViewContainer"] {{
@@ -41,8 +42,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-
-
 @st.cache_data(ttl=3600)
 def load_all_cities() -> List[str]:
     try:
@@ -63,11 +62,13 @@ def load_restaurants_by_city(city_name: str) -> List[str]:
     except requests.exceptions.ConnectionError:
         st.warning("API-anslutning misslyckades")
 
+
 st.header("🍽️ RestAuranGer", divider="rainbow")
 
 all_cities = load_all_cities()
 
 col1, col2, col3 = st.columns(3)
+
 
 with col1:
     with st.container(border=True):
@@ -81,29 +82,44 @@ with col1:
                     st.error("⚠️ Vänligen fyll i båda fält.")
                 else:
                     st.info(f"🔎 Söker efter '{query}' i {city}...")
+
+                    # query och city är Python-strängar
+                    # De skickas som URL-parametrar till FastAPI-backend.
+                    # Exempel-URL: "http://localhost:8000/search?query=sushi&city=Göteborg"
                     response = requests.get(f"{BASE_URL}/search?query={query}&city={city}")
+
+                    # response är ett requests.Response-objekt. 
                     if response.status_code == 200:
+                        # JSON till Python Dictionary:
+                        # response.json()-metoden läser body från HTTP-svaret.
+                        # Den tolkar (parsar) JSON-strängen och omvandlar den till en Python-dictionary.
                         json_data = response.json()
                         st.success("Sökningen lyckades!")
+
+                        # Dictionary till Streamlit DataFrame:
+                        # json_data är nu en Python-dict, t.ex. {'results': [...]}.
+                        # gör en df av dictens resultat
                         st.dataframe(json_data['results'])
                     else:
                         st.warning("Inga resultat hittades.")
+
 
 with col3:
     with st.container(border=True):
         st.subheader("📄 Visa detaljer")
         chosen_city = st.selectbox("Välj stad:", all_cities, key="detail_city")
-        restaurants_by_city = load_restaurants_by_city(chosen_city)
-        # restaurants_by_city.sort() Hur sortera?
+        restaurants_in_city = load_restaurants_by_city(chosen_city)
+        sorted_restaurants = sorted(restaurants_in_city)
 
-        if not restaurants_by_city:
+        if not sorted_restaurants:
             st.warning("Kunde inte ladda restauranglistan.")
             selected_name = None
         else:
             selected_name = st.selectbox(
                 "Välj restaurang för detaljer:",
-                ["— Välj Restaurang —"] + restaurants_by_city
+                ["— Välj Restaurang —"] + sorted_restaurants
             )
+            
         with col2:
             if selected_name and selected_name != "— Välj Restaurang —":
                 with st.spinner(f"Hämtar en recension för {selected_name}..."):
@@ -120,7 +136,7 @@ with col3:
                             updated_name = st.text_input("Namn:", value=detail_data.get('name', ''))
                             updated_city = st.text_input("Stad:", value=detail_data.get('city', ''))
                             updated_text = st.text_area("Recension:", value=detail_data.get('text', ''))
-                            updated_rating = st.slider(label="Omdöme",min_value=0.0, max_value=5.0, value=3.0, step=0.1, format="%.1f")
+                            updated_rating = st.slider(key="updated_rating", label="Omdöme",min_value=0.0, max_value=5.0, value=3.0, step=0.1, format="%.1f")
 
                             # Skapar knapp och kollar om den trycks på
                             if st.button("Ändra", key="edit_button"):
@@ -139,14 +155,15 @@ with col3:
                                     else:
                                         st.error(f"Något gick fel vid uppdateringen: {put_response.status_code}")
                                 except requests.exceptions.RequestException as e:
-                                    st.error(f"Ett fel uppstod vid anropet till API:et: {e}")
-                                    
+                                    st.error(f"Ett fel uppstod vid anropet till API:et: {e}") 
                         else:
                             st.warning("Inga detaljer hittades för detta namn.")
                     else:
                         st.error("Kunde inte hämta detaljer.")
 
-colleft, colright = st.columns(2)
+
+colleft, colright= st.columns(2)
+
 
 with colleft:
     with st.container(border=True):
@@ -171,6 +188,7 @@ with colleft:
                     st.error(f"Något gick fel: {post_restaurant.status_code}")
             else:
                 st.warning("Fyll i alla fält innan du lägger till restaurangen.")
+            
                 
 with colright:
     pass

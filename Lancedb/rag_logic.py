@@ -33,20 +33,7 @@ except Exception as e:
 
 embedding_model = SentenceTransformer(EMBEDDING_MODEL_NAME) 
 
-
-
-# HANTERAR ANVÄNDARINPUT
-# def get_user_query(input_prompt: str) -> str | None:
-#     """
-#     Hanterar inmatning från användaren och checkar för avslut.
-#     Returnerar user_input eller None.
-#     """
-#     user_input = input(input_prompt)
-#     if user_input.lower() == 'q':
-#         return None
-    
-#     return user_input.strip()
-
+# ------------------- RAG --------------------
 
 # HANTERAR HÄMTNING (RAG: Retrieval)
 def perform_vector_search(query: str, city_filter: str):
@@ -72,9 +59,9 @@ def perform_vector_search(query: str, city_filter: str):
         print(f"Hittade inga relevanta recensioner i databasen för {city_filter}.")
         return None
 
-    print(f"Hittade {len(search_results)} potentiella fakta. Förbereder för Gemini...")
+    print(f"Hittade {len(search_results)} potentiella fakta. Förbereder för Gemini..")
     
-    # 3. AUGMENTATION - FÖRBÄTTRING - FORMULERA KONTEXTEN TYDLIGT (LÖSNINGEN MOT HALLUCINATIONER)
+    # AUGMENTATION - FÖRBÄTTRING - FORMULERA KONTEXTEN TYDLIGT (LÖSNINGEN MOT HALLUCINATIONER)
     context_text = []
     for result in search_results:
         # Tydlig etikettering hjälper LLM:en att korrekt extrahera Namn, Stad, etc.
@@ -143,7 +130,7 @@ def run_gemini_query(user_query: str, context: str) -> RestaurantList | None:
     
     return None
 
-
+# --------------------- ADD ---------------------
 def add_restaurant(restaurant_name: str, restaurant_city: str, review: str) -> bool:
     """
     En boleansk metod som lägger till en ny recension i databasen genom att först skapa en vektor.
@@ -175,7 +162,7 @@ def add_restaurant(restaurant_name: str, restaurant_city: str, review: str) -> b
         print(f"[FEL]: Kunde inte spara data till LanceDB. Fel: {e}")
         return False
 
-
+# --------------------- LIST ---------------------
 def list_all_unique_names():
     all_restaurants = table.to_pandas()
     unique_names = all_restaurants['name'].unique().tolist()
@@ -193,9 +180,8 @@ def list_restaurants_by_city(city_name: str):
 
 
 def get_details_by_name(restaurant_name: str):
-    
     try:
-        # Sök, filtrera och ta ut 1 (den enda)
+        # Sök, filtrera och ta ut en (den enda)
         search_result = table.search()
         search_result = search_result.where(f"name = '{restaurant_name}'")
         search_result = search_result.limit(1)
@@ -212,18 +198,15 @@ def get_details_by_name(restaurant_name: str):
         print(f"Fel vid hämtning av detaljer för {restaurant_name}: {e}")
         return None
 
-def update_restaurant(restaurant_name: str, restaurant_city: str, review: str) -> bool:
-    """
-    Updates an existing restaurant review in the database.
-    """
-    if not (restaurant_name and restaurant_city and review):
-        return False
 
+# --------------------- UPDATE ---------------------
+# Huvudsyftet är att lyckas uppdatera, ja eller nej, därför bool. SKickar mindre data
+def update_restaurant(restaurant_name: str, restaurant_city: str, review: str) -> bool:
     try:
-        # Vectorize the updated review
+        # Vektorisera den uppdaterade recensionen
         embedding = embedding_model.encode(review).tolist()
 
-        #  Update data
+        # uppdatera datan
         data_to_update = {
             "name": restaurant_name,
             "city": restaurant_city,
@@ -231,6 +214,7 @@ def update_restaurant(restaurant_name: str, restaurant_city: str, review: str) -
             "vector": embedding,
         }
 
+        # ta bort den gamla restaurangen och staden, ersätt med det nya
         table.delete(f"name = '{restaurant_name}' AND city = '{restaurant_city}'")
         table.add([data_to_update])
         return True

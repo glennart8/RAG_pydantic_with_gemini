@@ -84,8 +84,9 @@ async def update_restaurant_review(restaurant_name: str, review: RestaurantRevie
             
         if updated:
             return {"message": f"Recensionen för {restaurant_name} har uppdaterats."}
-
         else:
             raise HTTPException(status_code=500, detail="Kunde inte uppdatera recensionen. Kontrollera serverloggar.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internt serverfel vid uppdatering: {e}")
+    
+    
