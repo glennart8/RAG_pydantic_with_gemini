@@ -211,3 +211,31 @@ def get_details_by_name(restaurant_name: str):
     except Exception as e:
         print(f"Fel vid hämtning av detaljer för {restaurant_name}: {e}")
         return None
+
+def update_restaurant(restaurant_name: str, restaurant_city: str, review: str) -> bool:
+    """
+    Updates an existing restaurant review in the database.
+    """
+    if not (restaurant_name and restaurant_city and review):
+        return False
+
+    try:
+        # Vectorize the updated review
+        embedding = embedding_model.encode(review).tolist()
+
+        #  Update data
+        data_to_update = {
+            "name": restaurant_name,
+            "city": restaurant_city,
+            "text": review,
+            "vector": embedding,
+        }
+
+        table.delete(f"name = '{restaurant_name}' AND city = '{restaurant_city}'")
+        table.add([data_to_update])
+        return True
+
+    except Exception as e:
+        print(f"Failed to update restaurant {restaurant_name}: {e}")
+        return False
+    

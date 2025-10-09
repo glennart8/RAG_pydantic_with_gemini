@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException
-from rag_logic import perform_vector_search, list_all_unique_names, get_details_by_name, list_all_unique_cities, list_restaurants_by_city, add_restaurant
+from rag_logic import perform_vector_search, list_all_unique_names, get_details_by_name, list_all_unique_cities, list_restaurants_by_city, add_restaurant, update_restaurant
 from models import RestaurantReview
 
 app = FastAPI()
@@ -74,19 +74,18 @@ async def post_new_restaurant(review: RestaurantReview):
         raise HTTPException(status_code=500, detail="Kunde inte spara recensionen. Kontrollera serverloggar.")
 
 @app.put("/edit", summary="Uppdaterar en restaurangrecension")
-async def update_restaurant_review(restaurant_name: str, review: RestaurantReview):
+async def update_restaurant_review(restaurant_name: str, review: RestaurantReview):    
     try:
-        success = add_restaurant(
-            restaurant_name=restaurant_name,  # Använd det befintliga namnet för att hitta rätt recension att uppdatera
-            restaurant_city=review.city,  # Tillåt uppdatering av staden
-            review=review.text            # Tillåt uppdatering av recensionstexten
+        updated = update_restaurant(
+            restaurant_name=restaurant_name,
+            restaurant_city=review.city,
+            review=review.text
         )
-
-        if success:
+            
+        if updated:
             return {"message": f"Recensionen för {restaurant_name} har uppdaterats."}
+
         else:
             raise HTTPException(status_code=500, detail="Kunde inte uppdatera recensionen. Kontrollera serverloggar.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internt serverfel vid uppdatering: {e}")
-    
-    

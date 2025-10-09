@@ -116,10 +116,24 @@ with col3:
                             st.markdown(f"**Om restaurangen: {selected_name}**")
                             st.info(detail_data.get('text', 'Ingen recensionstext tillgänglig.'))
                             
-                            # Skapar knapp och kollar om den trycks på samtidigt
+                            # För uppdatering
+                            updated_name = st.text_input("Namn:", value=detail_data.get('name', ''))
+                            updated_city = st.text_input("Stad:", value=detail_data.get('city', ''))
+                            updated_text = st.text_area("Recension:", value=detail_data.get('text', ''))
+                            updated_rating = st.slider(label="Omdöme",min_value=0.0, max_value=5.0, value=3.0, step=0.1, format="%.1f")
+
+                            # Skapar knapp och kollar om den trycks på
                             if st.button("Ändra", key="edit_button"):
-                                try: 
-                                    put_response = requests.put(f"{BASE_URL}/edit?restaurant_name={encoded_detail_name}")                                 
+                                try:
+                                    put_response = requests.put(
+                                        f"{BASE_URL}/edit?restaurant_name={encoded_detail_name}",
+                                        json={
+                                            "name": updated_name,
+                                            "city": updated_city,
+                                            "text": f"{updated_text} Betyg: {updated_rating}"
+                                        }
+                                    )
+
                                     if put_response.status_code == 200:
                                         st.success("Restaurangen har uppdaterats!")
                                     else:
@@ -151,6 +165,8 @@ with colleft:
                 })
                 if post_restaurant.status_code == 200:
                     st.success("Restaurangen har lagts till!")
+                    # Tömmer all cachad data. Streamlit kommer att köra om appen och ladda de nya städerna/restaurangerna.
+                    st.cache_data.clear() 
                 else:
                     st.error(f"Något gick fel: {post_restaurant.status_code}")
             else:
