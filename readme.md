@@ -18,8 +18,11 @@ Med denna struktur kan man själv fylla på med restaurangbesök, recensera för
 - [x] Gå via fastapi till frontend i streamlit
 - [x] Om adress inte nämns i den råa textinputen, guida llm att hitta adressen på nätet
 - [x] Visa info om vald restaurang i streamlit 
-- [ ] Ändra så att den verkligen visar thai/asiatiskt eller liknande och inte typ pizzerior när man söker efter thai
+- [ ] Ändra så att LLM läger större vikt vid typ av mat/land
 - [ ] Gör en snygg design
+- [ ] Skapa funktion för att ändra restaurang
+- [ ] Lägg in en slidebar (?) för betygsskalan när man lägger till/ändrar restaurang
+
 
 # STEG
 - Retriaval/Hämta/Lägg till: Vektorinbäddningar, jag använder embedding_model.encode() för att göra data sökbar i LanceDB.

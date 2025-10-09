@@ -67,7 +67,7 @@ st.header("🍽️ RestAuranGer", divider="rainbow")
 
 all_cities = load_all_cities()
 
-col1, col2 = st.columns(2)
+col1, col2, col3 = st.columns(3)
 
 with col1:
     with st.container(border=True):
@@ -76,24 +76,25 @@ with col1:
         city = st.selectbox("Stad:", all_cities, key="search_city")
 
         if st.button("Sök"):
-            if not query or not city:
-                st.error("⚠️ Vänligen fyll i båda fält.")
-            else:
-                st.info(f"🔎 Söker efter '{query}' i {city}...")
-                response = requests.get(f"{BASE_URL}/search?query={query}&city={city}")
-                if response.status_code == 200:
-                    json_data = response.json()
-                    st.success("Sökningen lyckades!")
-                    st.dataframe(json_data['results'])
+            with col2:
+                if not query or not city:
+                    st.error("⚠️ Vänligen fyll i båda fält.")
                 else:
-                    st.warning("Inga resultat hittades.")
+                    st.info(f"🔎 Söker efter '{query}' i {city}...")
+                    response = requests.get(f"{BASE_URL}/search?query={query}&city={city}")
+                    if response.status_code == 200:
+                        json_data = response.json()
+                        st.success("Sökningen lyckades!")
+                        st.dataframe(json_data['results'])
+                    else:
+                        st.warning("Inga resultat hittades.")
 
-with col2:
+with col3:
     with st.container(border=True):
         st.subheader("📄 Visa detaljer")
         chosen_city = st.selectbox("Välj stad:", all_cities, key="detail_city")
         restaurants_by_city = load_restaurants_by_city(chosen_city)
-        restaurants_by_city.sort()
+        # restaurants_by_city.sort() Hur sortera?
 
         if not restaurants_by_city:
             st.warning("Kunde inte ladda restauranglistan.")
@@ -103,38 +104,57 @@ with col2:
                 "Välj restaurang för detaljer:",
                 ["— Välj Restaurang —"] + restaurants_by_city
             )
+        with col2:
+            if selected_name and selected_name != "— Välj Restaurang —":
+                with st.spinner(f"Hämtar en recension för {selected_name}..."):
+                    encoded_detail_name = quote(selected_name)
+                    detail_response = requests.get(f"{BASE_URL}/details?restaurant_name={encoded_detail_name}")
 
-        if selected_name and selected_name != "— Välj Restaurang —":
-            with st.spinner(f"Hämtar en recension för {selected_name}..."):
-                encoded_detail_name = quote(selected_name)
-                detail_response = requests.get(f"{BASE_URL}/details?restaurant_name={encoded_detail_name}")
-
-                if detail_response.status_code == 200:
-                    detail_data = detail_response.json().get('details')
-                    if detail_data:
-                        st.markdown(f"**Om restaurangen: {selected_name}**")
-                        st.info(detail_data.get('text', 'Ingen recensionstext tillgänglig.'))
+                    if detail_response.status_code == 200:
+                        detail_data = detail_response.json().get('details')
+                        if detail_data:
+                            st.markdown(f"**Om restaurangen: {selected_name}**")
+                            st.info(detail_data.get('text', 'Ingen recensionstext tillgänglig.'))
+                            
+                            # Skapar knapp och kollar om den trycks på samtidigt
+                            if st.button("Ändra", key="edit_button"):
+                                try: 
+                                    put_response = requests.put(f"{BASE_URL}/edit?restaurant_name={encoded_detail_name}")                                 
+                                    if put_response.status_code == 200:
+                                        st.success("Restaurangen har uppdaterats!")
+                                    else:
+                                        st.error(f"Något gick fel vid uppdateringen: {put_response.status_code}")
+                                except requests.exceptions.RequestException as e:
+                                    st.error(f"Ett fel uppstod vid anropet till API:et: {e}")
+                                    
+                        else:
+                            st.warning("Inga detaljer hittades för detta namn.")
                     else:
-                        st.warning("Inga detaljer hittades för detta namn.")
+                        st.error("Kunde inte hämta detaljer.")
+
+colleft, colright = st.columns(2)
+
+with colleft:
+    with st.container(border=True):
+        st.subheader("➕ Lägg till en restaurang")
+        name = st.text_input("Restaurangens namn:")
+        city = st.selectbox("Stad:", all_cities, key="add_restaurant_city")
+        text = st.text_area("Berätta om restaurangen:")
+        rating = st.slider(label="Omdöme",min_value=0.0, max_value=5.0, value=3.0, step=0.1, format="%.1f")
+
+        if st.button("Lägg till restaurang"):
+            if name and city and text and rating:
+                post_restaurant = requests.post(f"{BASE_URL}/add_restaurant", json={
+                    "name": name,
+                    "city": city,
+                    "text": text + f" Betyg: {rating}"
+                })
+                if post_restaurant.status_code == 200:
+                    st.success("Restaurangen har lagts till!")
                 else:
-                    st.error("Kunde inte hämta detaljer.")
-
-with st.container(border=True):
-    st.subheader("➕ Lägg till en restaurang")
-    name = st.text_input("Restaurangens namn:")
-    city = st.selectbox("Stad:", all_cities, key="add_restaurant_city")
-    text = st.text_area("Berätta om restaurangen:")
-
-    if st.button("Lägg till restaurang"):
-        if name and city and text:
-            post_restaurant = requests.post(f"{BASE_URL}/add_restaurant", json={
-                "name": name,
-                "city": city,
-                "text": text
-            })
-            if post_restaurant.status_code == 200:
-                st.success("Restaurangen har lagts till!")
+                    st.error(f"Något gick fel: {post_restaurant.status_code}")
             else:
-                st.error(f"Något gick fel: {post_restaurant.status_code}")
-        else:
-            st.warning("Fyll i alla fält innan du lägger till restaurangen.")
+                st.warning("Fyll i alla fält innan du lägger till restaurangen.")
+                
+with colright:
+    pass
